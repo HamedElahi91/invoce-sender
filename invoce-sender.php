@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 /*
 Plugin Name: invoce-sender
 Description: This is a plugin that make a pdf invoice and send it to as a whatsapp message.
@@ -13,19 +14,19 @@ Text Domain: invoce-sender
 
 
 add_action('woocommerce_thankyou', 'generate_sales_report', 10, 1);
+//add_action('woocommerce_order_status_processing', 'generate_sales_report', 10, 1);
 
 
-require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
+require_once(plugin_dir_path(__FILE__) . 'vendor/autoload.php');
 use GreenApi\RestApi\GreenApiClient;
 
-define( "ID_INSTANCE", "1101806573" );
-define( "API_TOKEN_INSTANCE", "fe4132fdab0647f48532e1ca4dfdbb69ff64ddf987db49c98b" );
+define("ID_INSTANCE", "1101806573");
+define("API_TOKEN_INSTANCE", "fe4132fdab0647f48532e1ca4dfdbb69ff64ddf987db49c98b");
 
 
 
 function generate_sales_report($order_id)
 {
-    
     // Get the order details
     $order = new WC_Order($order_id);
     $order_id = $order->get_id();
@@ -34,18 +35,18 @@ function generate_sales_report($order_id)
     $date = $order->get_date_created()->format('M j, Y');
     $address = $order->get_formatted_billing_address();
 
-    if ( $order ) {
+    if ($order) {
         $items = $order->get_items();
         $data=[];
         $counter = 1;
         $sum_of_all_quantity = 0;
         $sum_of_cart = 0;
         $sum_of_cart_by_discount = 0;
-        foreach ( $items as $item ) {
+        foreach ($items as $item) {
             $product_id = $item->get_product_id();
             $product_name = $item->get_name();
             $product_qty = $item->get_quantity();
-            $product = wc_get_product( $product_id );
+            $product = wc_get_product($product_id);
             $regular_price = $product->get_regular_price();
             $price = $product->get_price();
             $product_total = $regular_price * $product_qty;
@@ -53,9 +54,9 @@ function generate_sales_report($order_id)
             $sum_of_all_quantity +=  $product_qty;
             $sum_of_cart +=  intval($product_total);
             $sum_of_cart_by_discount += intval($product_total_by_discount);
-            
+
             // Do something with the product information
-            
+
             array_push($data, array(
                 'counter' => $counter,
                 'product_name' => $product_name,
@@ -67,17 +68,16 @@ function generate_sales_report($order_id)
             ));
             $counter++;
         }
-
     }
     $mpdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4']);
     $mpdf->SetDirectionality('rtl');
     $mpdf->autoScriptToLang = true;
-    $mpdf->baseScript = 1; 
+    $mpdf->baseScript = 1;
     $mpdf->autoVietnamese = true;
     $mpdf->autoArabic = true;
     $mpdf->autoLangToFont = true;
     $mpdf->SetFont('dejavusans', '', 12);
-    
+
 
     $html = '<table border="1" cellpadding="2" cellspacing="2">
     <thead>
@@ -91,19 +91,19 @@ function generate_sales_report($order_id)
         <td width="140" align="center"><b>قیمت کل با تخفیف</b></td>
         </tr>
         </thead>'    ;
-    foreach($data as $row){
+    foreach ($data as $row) {
         $html .= '<tr>';
-        foreach($row as $key => $cell){
+        foreach ($row as $key => $cell) {
             $html .= '<td>' . $cell . '</td>';
         }
         $html .= '</tr>';
     }
 
-    
+
     $html .= '<tfoot>
         <tr style="background-color:red;color:white;">
         <td colspan="2" width="110" align="center"><b>مجموع تعداد: '. $sum_of_all_quantity .'</b></td>
-        <td colspan="2" width="170" align="center"><b>جمع کل خرید: ' . wc_price( $sum_of_cart ) . '</b></td>
+        <td colspan="2" width="170" align="center"><b>جمع کل خرید: ' . wc_price($sum_of_cart) . '</b></td>
         <td colspan="2" align="center"><b>حمل و نقل: '. $order->get_shipping_to_display() .'</b></td>
         <td colspan="2" align="center"><b>قیمت نهایی: '. wc_price($order->get_total()) .'</b></td>
         </tr>
@@ -117,18 +117,18 @@ function generate_sales_report($order_id)
     $mpdf->WriteHTML($html);
 
 
-    $mpdf->OutputFile(plugin_dir_path( __FILE__ ) . 'invoices/' . $customer_name . '_' . $order_id . '.pdf'); 
+    $mpdf->OutputFile(plugin_dir_path(__FILE__) . 'invoices/' . $customer_name . '_' . $order_id . '.pdf');
 
 
-    $greenApi = new GreenApiClient( ID_INSTANCE, API_TOKEN_INSTANCE );
+    $greenApi = new GreenApiClient(ID_INSTANCE, API_TOKEN_INSTANCE);
 
-    $file = plugin_dir_path( __FILE__ ) . 'invoices/' . $customer_name . '_' . $order_id . '.pdf';
+    $file = plugin_dir_path(__FILE__) . 'invoices/' . $customer_name . '_' . $order_id . '.pdf';
 
     $result = $greenApi->sending->sendFileByUpload('989021012150@c.us', $file, $customer_name . '_' . $order_id . '.pdf', $customer_name);
 
-    if($result->error == null && $result->code == 200){
+    if ($result->error == null && $result->code == 200) {
         unlink($file);
-    }else{
+    } else {
         var_dump('err =>  ' . $result->error);
     }
-} 
+}
