@@ -44,11 +44,36 @@ function generate_sales_report($order_id)
         $sum_of_cart_by_discount = 0;
         foreach ($items as $item) {
             $product_id = $item->get_product_id();
-            $product_name = $item->get_name();
-            $product_qty = $item->get_quantity();
             $product = wc_get_product($product_id);
-            $regular_price = $product->get_regular_price();
-            $price = $product->get_price();
+
+            // Check if the product is a variable product
+            if ($product->is_type('variable')) {
+                // Get the variation ID
+                $variation_id = $item->get_variation_id();
+
+                // Get the variation object
+                $variation_obj = wc_get_product($variation_id);
+
+                // Get the attributes of the variation
+                $attributes = $variation_obj->get_variation_attributes();
+
+                // Get the quantity ordered
+                $product_qty = $item->get_quantity();
+
+                // Get the variation price
+                $price = $variation_obj->get_price();
+
+                // Get the variation regular price
+                $regular_price = $variation_obj->get_regular_price();
+
+                $product_name = $item->get_name();
+            }else{
+                $product_name = $item->get_name();
+                $product_qty = $item->get_quantity();
+                $regular_price = $product->get_regular_price();
+                $price = $product->get_price();
+            }
+ 
             $product_total = $regular_price * $product_qty;
             $product_total_by_discount = $price * $product_qty;
             $sum_of_all_quantity +=  $product_qty;
